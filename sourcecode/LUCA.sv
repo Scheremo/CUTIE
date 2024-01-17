@@ -29,6 +29,7 @@ module LUCA
      parameter int unsigned N_I = 128,
      parameter int unsigned N_O = 128,
      parameter int unsigned LAYER_FIFODEPTH = 10,
+     parameter int unsigned WEIGHT_STAGGER = 1,
      parameter int unsigned IMAGEWIDTH = 224,
      parameter int unsigned IMAGEHEIGHT = 224,
      parameter int unsigned TCN_WIDTH = 48,
@@ -109,7 +110,7 @@ module LUCA
 
      output logic [$clog2(NUMACTMEMBANKSETS)-1:0] readbank_o,
      output logic [$clog2(NUMACTMEMBANKSETS)-1:0] writebank_o,
-     output logic [$clog2(PIPELINEDEPTH):0] pixelwidth_o,
+     output logic [$clog2(WEIGHT_STAGGER):0] pixelwidth_o,
      output logic			  tcn_actmem_set_shift_o,
      output logic [$clog2(TCN_WIDTH)-1:0] tcn_actmem_read_shift_o,
      output logic [$clog2(TCN_WIDTH)-1:0] tcn_actmem_write_shift_o,
