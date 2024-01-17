@@ -12,7 +12,9 @@ package:
 # Other packages this package depends on. Optional.
 dependencies:
   # Path dependency.
-  common_cells: { git: "https://github.com/pulp-platform/common_cells.git", rev: ""}
+  register_interface: { git: "https://github.com/pulp-platform/register_interface.git", version: 0.2.1}
+
+  common_cells: { git: "https://github.com/pulp-platform/common_cells.git", rev: "master"}
 
 # Freeze any dependency updates. Optional. False if omitted.
 # Useful for chip packages. Once the chip is in final tapeout mode, and
@@ -21,7 +23,7 @@ dependencies:
 
 # List of source files in this package. Optional.
 sources:
-  - sourcecode/cutie_pkg.sv
+  - conf/cutie_pkg.sv
   # Individual source files are simple string entries
   - conf/cutie_conf.sv
   - conf/cutie_enums.sv
@@ -65,7 +67,7 @@ sources:
   - sourcecode/layer_params_reg_top.sv
 
   - include_dirs:
-      - sourcecode/include
+      - include
     files:
       - sourcecode/tcdm_to_mem.sv
 

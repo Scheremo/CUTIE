@@ -151,7 +151,6 @@ module LUCA
    logic [$clog2(NUMACTMEMBANKSETS)-1:0]	 writebank_q, writebank_d;
 
 
-
    // The timer is used to time the writeback of the last valid computation
    logic					 timer_started_q, timer_started_d;
    logic [$clog2(PIPELINEDEPTH+2)-1:0]		 timer_q, timer_d;

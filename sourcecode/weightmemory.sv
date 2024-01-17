@@ -11,16 +11,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0 WITH SHL-2.1
 //
-// Author: Moritz Scherer, ETH Zurich
+// Licensed under the Solderpad Hardware License v 2.1 (the "License"); you may not use this file except in compliance with the License, or, at your option, the Apache License version 2.0.
 //
-// SPDX-License-Identifier: SHL-0.51
+// You may obtain a copy of the License at
+// https://solderpad.org/licenses/SHL-2.1/
+// Unless required by applicable law or agreed to in writing, any work distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-// Copyright and related rights are licensed under the Solderpad Hardware License,
-// Version 0.51 (the "License"); you may not use this file except in compliance with
-// the License. You may obtain a copy of the License at http://solderpad.org/licenses/SHL-0.51.
-// Unless required by applicable law or agreed to in writing, software, hardware and materials
-// distributed under this License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 //
 // ----------------------------------------------------------------------
@@ -61,7 +57,6 @@ module weightmemory #(
    ///////////////////////////////// COMBINATORIAL SIGNALS /////////////////////////////////
 
    logic [PHYSICALBITSPERWORD-1:0]                weights_encoded;
-   logic [PHYSICALBITSPERWORD-1:0]                weights_encoded_pseudo;
    logic [NUMDECODERS-1:0][7:0]                   weights_encoded_decoder_view;
    logic [NUMDECODERS-1:0][4:0][1:0]              weights_decoded;
    logic [PHYSICALTRITSPERWORD-1:0][1:0]          weights_decoded_physical_view;
@@ -88,9 +83,7 @@ module weightmemory #(
    assign addr = addr_i;
    assign ready = ~collision_q & read_enable_i;
    assign ready_o = prev_ready;
-   assign weights_o = weights_decoded_effective_view;
-
-   assign weights_decoded_physical_view = {<<2{weights_decoded}};
+   assign weights_o = {<<2{weights_decoded_effective_view}};
 
    assign weights_decoded_physical_view = weights_decoded;
 
