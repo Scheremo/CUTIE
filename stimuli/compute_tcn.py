@@ -535,24 +535,9 @@ def translate_ternary_sequence(seq):
 
 def serializeMemory(memory):
 
-    _act_int = [int(jjj, 2) for jjj in ["".join([str(jj) for jj in memory[j:j + 2]]) for j in range(0, 64, 2)]][::-1]
-
     act_int = [int(jjj, 2) for jjj in ["".join([str(jj) for jj in memory[j:j + 2]]) for j in range(0, 64, 2)]]
 
     word_string = [int(jjj, 2) for jjj in ["".join(["{0:02b}".format(j) for j in act_int])[jj:jj + 32] for jj in range(0, 64, 32)][::-1]]
-
-    # lest = [memory[j:j+2] for j in range(0, 2*ni//weight_stagger, 2)][::-1]
-    # __list = []
-    # for word in lest:
-    #     __list.append("".join(str(b) for b in word))
-    # blob = ("").join(__list)
-    # blobparts = [blob[i:i+32] for i in range(0, len(blob), 32)]
-
-    # __word_string = [int(word, 2) for word in blobparts]
-
-    # _word_string = [int(word, 2) for word in blobparts][::-1]
-
-    #import IPython; IPython.embed()
 
     return word_string
 
