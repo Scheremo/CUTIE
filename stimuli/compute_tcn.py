@@ -78,6 +78,9 @@ splitbitwidth = int(np.ceil(np.log2(weight_stagger))) + 1
 
 nibitwidth = int(np.maximum(np.ceil(np.log2(ni)), 1)) + 1
 nobitwidth = int(np.maximum(np.ceil(np.log2(no)), 1))
+
+iterative_decomp_nobitwidth = int(np.maximum(np.ceil(np.log2(no//iterative_decomp)), 1))
+
 imagewidthbitwidth = int(np.maximum(np.ceil(np.log2(imagewidth)), 1)) + 1
 imageheightbitwidth = int(np.maximum(np.ceil(np.log2(imageheight)), 1)) + 1
 
@@ -114,7 +117,7 @@ inputtypes = _input(actmemory.inputtypes.external_bank_set, actmemory.inputtypes
 outputwidths = _output((physicalbitsperword, (1)))
 inputwidths = _input(actmemory.inputwidths.external_bank_set, actmemory.inputwidths.external_we,
                      actmemory.inputwidths.external_req, actmemory.inputwidths.external_addr,
-                     actmemory.inputwidths.external_wdata, (nobitwidth, 1), weightmemory.inputwidths.external_we,
+                     actmemory.inputwidths.external_wdata, (iterative_decomp_nobitwidth, 1), weightmemory.inputwidths.external_we,
                      weightmemory.inputwidths.external_req, weightmemory.inputwidths.external_addr,
                      weightmemory.inputwidths.external_wdata, ocu.inputwidths.thresh_pos, ocu.inputwidths.thresh_neg,
                      ocu.inputwidths.threshold_store_to_fifo, LUCA.inputwidths.store_to_fifo, LUCA.inputwidths.testmode,
@@ -187,7 +190,7 @@ weightmem_writes_types = _weightmem_writes(addr='unsigned',
                                            bank='unsigned',
                                            wdata='unsigned')
 weightmem_writes_widths = _weightmem_writes(addr=weightmemory.inputwidths.external_addr,
-                                            bank=(nobitwidth, 1),
+                                            bank=(iterative_decomp_nobitwidth, 1),
                                             wdata=weightmemory.inputwidths.external_wdata)
 
 _thresholds = namedtuple("_thresholds", "pos neg we")
@@ -530,6 +533,29 @@ def translate_ternary_sequence(seq):
 
     return _string, string_decoded
 
+def serializeMemory(memory):
+
+    _act_int = [int(jjj, 2) for jjj in ["".join([str(jj) for jj in memory[j:j + 2]]) for j in range(0, 64, 2)]][::-1]
+
+    act_int = [int(jjj, 2) for jjj in ["".join([str(jj) for jj in memory[j:j + 2]]) for j in range(0, 64, 2)]]
+
+    word_string = [int(jjj, 2) for jjj in ["".join(["{0:02b}".format(j) for j in act_int])[jj:jj + 32] for jj in range(0, 64, 32)][::-1]]
+
+    # lest = [memory[j:j+2] for j in range(0, 2*ni//weight_stagger, 2)][::-1]
+    # __list = []
+    # for word in lest:
+    #     __list.append("".join(str(b) for b in word))
+    # blob = ("").join(__list)
+    # blobparts = [blob[i:i+32] for i in range(0, len(blob), 32)]
+
+    # __word_string = [int(word, 2) for word in blobparts]
+
+    # _word_string = [int(word, 2) for word in blobparts][::-1]
+
+    #import IPython; IPython.embed()
+
+    return word_string
+
 if __name__ == '__main__':
 
     num_cnn_layers = 1
@@ -538,11 +564,11 @@ if __name__ == '__main__':
     num_layers = num_cnn_layers + num_tcn_layers + num_dense_layers
     num_execs = 1
 
-    input_imagewidth = 32
-    input_imageheight = 32
+    input_imagewidth = 4
+    input_imageheight = 4
 
     layer_channels = [ni, ni]
-    n_classes = 48
+    n_classes = 32
     layer_ni = layer_channels[:-1]
     layer_no = layer_channels[1:]
     layer_stridew = [1, 1, 1, 1, 1]
@@ -634,6 +660,12 @@ if __name__ == '__main__':
     print("Generating layer params stimuli file...")
     f_layer_param = open("layer_params.txt", 'w+')
     f_layer_param_intf = open("layer_params_intf.txt", 'w+')
+    f_layer_param_c = open('layer_params_intf.h', 'w+')
+    f_layer_param_c.write('#ifndef __LAYER_PARAMS_INCLUDE_GUARD\n')
+    f_layer_param_c.write('#define __LAYER_PARAMS_INCLUDE_GUARD\n\n')
+    f_layer_param_c.write('uint32_t cutieLayerParamsLen = %d;\n' % (4 * num_layers))
+    f_layer_param_c.write('int32_t cutieLayerParams[] PI_L2 = {\n')
+    layer_param_str = ""
     for i in range(num_layers):
         #CNN Layers
         if (i < num_cnn_layers):
@@ -703,21 +735,37 @@ if __name__ == '__main__':
                                     tcn_k=tcn_k)
         f_layer_param.write("%s \n" % format_signals(layer_params, layer_param_types, layer_param_widths))
         f_layer_param_intf.write("%s\n" % ",".join([str(j) for j in list(layer_params)]))
+        layer_param_str += "0x%02X%02X%02X%02X," % (rounded_no[i], rounded_ni[i], imageheight, imagewidth)
+        layer_param_str += "0x%02X%02X%02X%02X," % (tcn_k, tcn_width_mod_dil, layer_tcn_width, is_tcn)
+        layer_param_str += "0x%02X%02X%02X%02X," % (stride_height, stride_width, padding_type, layer_k)
+        layer_param_str += "0x%02X%02X%02X%02X,\n" % (pooling_padding_type, pooling_kernel, pooling_type, pooling_enable)
+    f_layer_param_c.write(layer_param_str[:-2] + "};\n#endif")
+    f_layer_param_c.close()
     f_layer_param.close()
     f_layer_param_intf.close()
 
     print("Generating weight stimuli file...")
     f_weightmem_writes = open('weights.txt', 'w+')
     f_weightmem_writes_intf = open('weights_intf.txt', 'w+')
+    f_weightmem_writes_c = open('weights_intf.h', 'w+')
+    f_weightmem_writes_c.write('#ifndef __WEIGHTS_INCLUDE_GUARD\n')
+    f_weightmem_writes_c.write('#define __WEIGHTS_INCLUDE_GUARD\n\n')
+    f_weightmem_writes_c.write('uint32_t cutieWeightsLen = %d;\n' % (memwrites[-1]['weight_writes']*3))
+    f_weightmem_writes_c.write('int32_t cutieWeights[] PI_L2 = {\n')
+
+    weightmem_writes_str = ''
+
     for i in range(weightmemorywrites):
         if i >= memwrites[current_weight_write_layer]['weight_writes']:
             weightmem_counter = 0
             current_weight_write_layer += 1
-            weightmem_depth[:] = current_weight_write_layer * k * k * weight_stagger
+            weightmem_depth[:] = current_weight_write_layer * k * k * weight_stagger * iterative_decomp
+            #weightmem_depth[:] = current_weight_write_layer * k * k * weight_stagger
             # weightmem_depth[:] = weightmem_depth[0]
 
         weightmemory_writedepth = int(layer_k * layer_k * np.ceil(memwrites[current_weight_write_layer]['ni'] / (ni / weight_stagger)))
-        weightmemory_bank = (int(weightmem_counter / weightmemory_writedepth) % memwrites[current_weight_write_layer]['no'])
+        weightmemory_bank = (int(weightmem_counter / weightmemory_writedepth) % (memwrites[current_weight_write_layer]['no'] // iterative_decomp))
+        #weightmemory_bank = (int(weightmem_counter / weightmemory_writedepth) % (memwrites[current_weight_write_layer]['no']))
         weightmemory_addr = weightmem_depth[weightmemory_bank]
         weightmem_depth[weightmemory_bank] += 1
         weightmemory_wdata = weightmem[i]
@@ -726,9 +774,19 @@ if __name__ == '__main__':
         weights = _weightmem_writes(addr=weightmemory_addr,
                                     bank=weightmemory_bank,
                                     wdata=weightmemory_wdata)
+
         f_weightmem_writes.write("%s \n" % format_signals(weights, weightmem_writes_types, weightmem_writes_widths))
-        weight_word_string = [int("".join([str(s) for s in weightmem_decoded[i][j:j+32]]),2) for j in range(0, ni, 32)]
-        f_weightmem_writes_intf.write("%d,%d,%08x,%08x,%08x\n" % (weightmemory_addr,weightmemory_bank, *weight_word_string))
+        weight_word_string = serializeMemory(weightmem_decoded[i])
+        f_weightmem_writes_intf.write("%d,%d,%08x,%08x\n" % (weightmemory_addr,weightmemory_bank, *weight_word_string))
+
+        weightmem_writes_str += str('0x%08x,' % (weightmemory_addr*2**2 + weightmemory_bank*2**9 + WEIGHTMEM_START_ADDR)) # Print Address SCHEREMO: CHECK THIS
+        for i in weight_word_string:
+            weightmem_writes_str += str('0x%08x,' %  i) # Print Address
+        weightmem_writes_str += str('\n') # Print Address
+
+    f_weightmem_writes_c.write(weightmem_writes_str[:-2] + "};\n#endif")
+    f_weightmem_writes_c.close()
+
     f_weightmem_writes.close()
     f_weightmem_writes_intf.close()
     # plt.matshow(weightmem_show)
@@ -741,12 +799,22 @@ if __name__ == '__main__':
     print("Generating thresholds stimuli file...")
     f_thresh = open("thresholds.txt", 'w+')
     f_thresh_intf = open("thresholds_intf.txt", 'w+')
+
+    f_thresh_writes_c = open('thresholds_intf.h', 'w+')
+    f_thresh_writes_c.write('#ifndef __THRESHS_INCLUDE_GUARD\n')
+    f_thresh_writes_c.write('#define __THRESHS_INCLUDE_GUARD\n\n')
+    f_thresh_writes_c.write('uint32_t cutieThreshsLen[] = {%s};\n' % (','.join([str(i) for i in layer_no]))) # This might break down for other networks!!!
+    f_thresh_writes_c.write('int16_t cutieThreshs[] PI_L2 = {\n')
+    thresh_writes_str = ''
+
     for i in range(memwrites[-1]['thresh_writes']):
         if i >= memwrites[current_thresh_write_layer]['thresh_writes']:
             current_thresh_write_layer += 1
             thresh_addr = 0
-        ocu_thresholds_save_enable = np.zeros(no, dtype=int)
-        ocu_thresholds_save_enable[thresh_addr] = 1
+        ocu_thresholds_save_enable = np.zeros(no//iterative_decomp, dtype=int)
+        ocu_thresholds_save_enable[thresh_addr % (no//iterative_decomp)] = 1
+        # ocu_thresholds_save_enable = np.zeros(no, dtype=int)
+        # ocu_thresholds_save_enable[thresh_addr] = 1
         if (current_thresh_write_layer < num_cnn_layers):
             ocu_thresh_pos = net.cnn_thresh[current_thresh_write_layer].hi[thresh_addr]
             ocu_thresh_neg = net.cnn_thresh[current_thresh_write_layer].lo[thresh_addr]
@@ -764,6 +832,10 @@ if __name__ == '__main__':
 
         f_thresh.write("%s \n" % format_signals(thresholds, thresholds_types, thresholds_widths))
         f_thresh_intf.write("%d,%d\n" % (ocu_thresh_pos, ocu_thresh_neg))
+        thresh_writes_str += str('0x{:04X},'.format(int(ocu_thresh_pos) & (2 ** 16 - 1)))
+        thresh_writes_str += str('0x{:04X},\n'.format(int(ocu_thresh_neg) & (2 ** 16 - 1)))
+
+    f_thresh_writes_c.write(thresh_writes_str[:-2] + "};\n#endif")
     f_thresh.close()
     f_thresh_intf.close()
 
@@ -775,22 +847,94 @@ if __name__ == '__main__':
     f_tcn_sequence = open("tcn_sequence.txt", 'w+')
     image_seq = torch.zeros((layer_tcn_width, layer_ni[0], input_imagewidth, input_imageheight))
 
+    f_actmem_writes_c = open('activations_intf.h', 'w+')
+    f_actmem_writes_c.write('#ifndef __ACTIVATIONS_INCLUDE_GUARD\n')
+    f_actmem_writes_c.write('#define __ACTIVATIONS_INCLUDE_GUARD\n\n')
+    f_actmem_writes_c.write('uint32_t cutieNumExecs = %d;\n' % num_execs)
+    f_actmem_writes_c.write('uint32_t cutieActsLen = %d;\n' % (rounded_ni[0] // (ni // weight_stagger) * input_imagewidth * input_imageheight))
+    f_actmem_writes_c.write('int32_t cutieActs[] PI_L2 = {\n')
+
+    f_responses_c = open('responses_intf.h', 'w+')
+    f_responses_c.write('#ifndef __RESPONSES_INCLUDE_GUARD\n')
+    f_responses_c.write('#define __RESPONSES_INCLUDE_GUARD\n\n')
+    f_responses_c.write('bool cutieUseFPoutput = %s;\n' % ('false' if num_dense_layers == 0 else 'true'))
+
+    if num_dense_layers == 0:
+        f_responses_c.write('uint32_t cutieResponsesLen = %d;\n' % (rounded_no[-1] // (no // weight_stagger) * outshapes[-1][2] * outshapes[-1][3]))
+    else:
+        f_responses_c.write('uint32_t cutieResponsesLen = %d;\n' % (rounded_no[-1]))
+    f_responses_c.write('int32_t cutieResponses[] PI_L2 = {\n')
+
+    activations_write_str = ''
+    responses_write_str = ''
+
     for i in range(num_execs):
-        new_image, new_image_padded = make_random_image(input_imagewidth, input_imageheight, layer_ni[0], rounded_ni[0])
+        new_image, new_image_padded = make_random_image(input_imageheight, input_imagewidth, layer_ni[0], rounded_ni[0])
 
         result, _ = net(new_image)
+
+        np.save("dvs_input_frame", new_image.squeeze().numpy())
 
         encoded_image, decoded_image = translate_image_to_actmem(new_image_padded)
         for addr, (enc_word, dec_word) in enumerate(zip(encoded_image, decoded_image)):
             f_activation.write("%s \n" % "".join([str(j) for j in enc_word]))
-            act_word_string = [int("".join([str(s) for s in dec_word[j:j + 32]]), 2) for j in range(0, ni, 32)]
-            f_activation_intf.write("%d,%08x,%08x,%08x\n" % (addr, *act_word_string))
+            # act_word_string = [ for j in range(0, 96, 32)]
+            # act_word = [dec_word[j:j+32] for j in range(0, 96, 32)]
+            act_word_string = serializeMemory(dec_word)
 
-        encoded_result, decoded_result = translate_image_to_actmem(result.unsqueeze(-1))
-        for addr, (enc_word, dec_word) in enumerate(zip(encoded_result, decoded_result)):
-            f_responses.write("%s \n" % "".join([str(j) for j in enc_word]))
-            act_word_string = [int("".join([str(s) for s in dec_word[j:j + 32]]), 2) for j in range(0, no, 32)]
-            f_responses_intf.write("%d,%08x,%08x,%08x\n" % (addr, *act_word_string))
+            # act_word_string = [int("".join([str(s) for s in dec_word[j:j + 32]]), 2) for j in range(0, 96, 32)]
+            f_activation_intf.write("%d,%08x,%08x\n" % (addr, *act_word_string))
+
+            activations_write_str += str(
+                '0x%08x,' % (addr * 2 ** 2 + ACTMEM_START_ADDR))  # Print Address SCHEREMO: CHECK THIS
+            for i in act_word_string:
+                activations_write_str += str('0x%08x,' % i)  # Print Address
+            activations_write_str += str('\n')  # Print Address
+
+        if num_dense_layers == 0:
+            encoded_result, decoded_result = translate_image_to_actmem(result.unsqueeze(-1))
+            for addr, (enc_word, dec_word) in enumerate(zip(encoded_result, decoded_result)):
+                f_responses.write("%s \n" % "".join([str(j) for j in enc_word]))
+                act_word_string = serializeMemory(dec_word)
+
+                #[int("".join([str(s) for s in dec_word[j:j + 32]]), 2) for j in range(0, no, 32)]
+                f_responses_intf.write("%d,%08x,%08x\n" % (addr, *act_word_string))
+                responses_write_str += str(
+                    '0x%08x,' % (addr * 2 ** 2 + ACTMEM_START_ADDR))  # Print Address SCHEREMO: CHECK THIS
+                for i in act_word_string:
+                    responses_write_str += str('0x%08x,' % i)  # Print Address
+                responses_write_str += str('\n')  # Print Address
+        else:
+            for i, data in enumerate(result.squeeze()):
+                if data < 0:
+                    f_responses_intf.write("%d,%s\n" % (i, hex((int(data.item()) + (1 << 32)) % (1 << 32))[2:]))
+                    responses_write_str += "0x%s,\n" % (hex((int(data.item()) + (1 << 32)) % (1 << 32))[2:])
+                else:
+                    f_responses_intf.write("%d,%08x\n" % (i, int(data.item())))
+                    responses_write_str += "0x%08X,\n" % (int(data.item()))
+
+    f_actmem_writes_c.write(activations_write_str[:-2] + "};\n#endif")
+    f_responses_c.write(responses_write_str[:-2] + "};\n#endif")
+
+
+    # for i in range(num_execs):
+    #     new_image, new_image_padded = make_random_image(input_imagewidth, input_imageheight, layer_ni[0], rounded_ni[0])
+
+    #     result, _ = net(new_image)
+
+    #     encoded_image, decoded_image = translate_image_to_actmem(new_image_padded)
+    #     for addr, (enc_word, dec_word) in enumerate(zip(encoded_image, decoded_image)):
+    #         f_activation.write("%s \n" % "".join([str(j) for j in enc_word]))
+    #         act_word_string = serializeMemory(dec_word)
+    #         #[int("".join([str(s) for s in dec_word[j:j + 32]]), 2) for j in range(0, ni, 32)]
+    #         f_activation_intf.write("%d,%08x,%08x\n" % (addr, *act_word_string))
+
+    #     encoded_result, decoded_result = translate_image_to_actmem(result.unsqueeze(-1))
+    #     for addr, (enc_word, dec_word) in enumerate(zip(encoded_result, decoded_result)):
+    #         f_responses.write("%s \n" % "".join([str(j) for j in enc_word]))
+    #         act_word_string = serializeMemory(dec_word)
+    #         #[int("".join([str(s) for s in dec_word[j:j + 32]]), 2) for j in range(0, no, 32)]
+    #         f_responses_intf.write("%d,%08x,%08x\n" % (addr, *act_word_string))
 
     f_activation.close()
     f_activation_intf.close()

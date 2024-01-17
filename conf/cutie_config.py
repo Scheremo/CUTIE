@@ -47,3 +47,6 @@ numactmemsets = 2
 actmemsetsbitwidth = np.maximum(int(np.ceil(np.log2(numactmemsets))),1)
 weightmemorybankdepth = layer_fifodepth*weight_stagger*k*k
 number_of_stimuli = 100 # Default number of stimuli
+
+ACTMEM_START_ADDR = int("0x1EC00000",0)
+WEIGHTMEM_START_ADDR = int("0x1EC40000",0)

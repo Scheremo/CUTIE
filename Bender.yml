@@ -12,9 +12,9 @@ package:
 # Other packages this package depends on. Optional.
 dependencies:
   # Path dependency.
-  register_interface: { git: "https://github.com/pulp-platform/register_interface.git", version: 0.2.1}
-
-  common_cells: { git: "https://github.com/pulp-platform/common_cells.git", rev: "master"}
+  register_interface: { git: "https://github.com/pulp-platform/register_interface.git", version: 0.4.2}
+  common_cells: { git: "https://github.com/pulp-platform/common_cells.git", version: 1.32.0}
+  axi: { git: "https://github.com/pulp-platform/axi.git", version: 0.39.1}
 
 # Freeze any dependency updates. Optional. False if omitted.
 # Useful for chip packages. Once the chip is in final tapeout mode, and
@@ -31,9 +31,6 @@ sources:
   - sourcecode/encoder.sv
   - sourcecode/decoder.sv
   # Weightmemory interfacing
-  - sourcecode/sram_actmem_behavioural.sv
-  - sourcecode/sram_weightmem_behavioural.sv
-
   - sourcecode/weightmemory.sv
   - sourcecode/weightmemory_internal_wrapper.sv
   - sourcecode/weightmemory_external_wrapper.sv
@@ -72,3 +69,11 @@ sources:
       - sourcecode/tcdm_to_mem.sv
 
   - sourcecode/compute_output_wrapper.sv
+
+  - target: test
+    files:
+          # Testing harness
+    - sourcecode/tcn_actmem_bank.sv
+    - sourcecode/sram_actmem_behavioural.sv
+    - sourcecode/sram_weightmem_behavioural.sv
+    - sourcecode/tb/tb_cutie_top.sv
