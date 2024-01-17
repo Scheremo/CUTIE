@@ -543,7 +543,7 @@ def serializeMemory(memory):
 
 if __name__ == '__main__':
 
-    num_cnn_layers = 1
+    num_cnn_layers = 2
     num_tcn_layers = 0
     num_dense_layers = 0
     num_layers = num_cnn_layers + num_tcn_layers + num_dense_layers
@@ -552,7 +552,7 @@ if __name__ == '__main__':
     input_imagewidth = 4
     input_imageheight = 4
 
-    layer_channels = [ni, ni]
+    layer_channels = [ni, ni, ni]
     n_classes = 32
     layer_ni = layer_channels[:-1]
     layer_no = layer_channels[1:]
