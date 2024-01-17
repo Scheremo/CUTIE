@@ -533,6 +533,17 @@ def translate_ternary_sequence(seq):
 
     return _string, string_decoded
 
+def compressMemory(memory):
+    _str = ("").join([str(i) for i in list(memory)])
+    _rev_string = [_str[i:i+32] for i in range(0, len(_str), 32)]
+    __rev_string = ("").join(_rev_string)
+    _pad_string = '0' * (10 - (len(__rev_string) % 10)) + __rev_string
+    _chunks = [_pad_string[i:i+10] for i in range(0, len(_pad_string), 10)]
+    _code = [reverse_codebook[i] for i in _chunks]
+    _hexcode = [hex(int(i, 2)) for i in _code]
+
+    return ("").join(_code)
+
 def serializeMemory(memory):
 
     act_int = [int(jjj, 2) for jjj in ["".join([str(jj) for jj in memory[j:j + 2]]) for j in range(0, 64, 2)]]
@@ -543,7 +554,7 @@ def serializeMemory(memory):
 
 if __name__ == '__main__':
 
-    num_cnn_layers = 2
+    num_cnn_layers = 1
     num_tcn_layers = 0
     num_dense_layers = 0
     num_layers = num_cnn_layers + num_tcn_layers + num_dense_layers
@@ -552,7 +563,7 @@ if __name__ == '__main__':
     input_imagewidth = 4
     input_imageheight = 4
 
-    layer_channels = [ni, ni, ni]
+    layer_channels = [ni, ni]
     n_classes = 32
     layer_ni = layer_channels[:-1]
     layer_no = layer_channels[1:]
@@ -760,8 +771,14 @@ if __name__ == '__main__':
                                     bank=weightmemory_bank,
                                     wdata=weightmemory_wdata)
 
-        f_weightmem_writes.write("%s \n" % format_signals(weights, weightmem_writes_types, weightmem_writes_widths))
         weight_word_string = serializeMemory(weightmem_decoded[i])
+        enc_weight_word_string = compressMemory(weightmem_decoded[i])
+        enc_weight_word = [int(i) for i in enc_weight_word_string]
+        _weights = _weightmem_writes(addr=weightmemory_addr,
+                                     bank=weightmemory_bank,
+                                     wdata=np.array(enc_weight_word))
+
+        f_weightmem_writes.write("%s \n" % format_signals(_weights, weightmem_writes_types, weightmem_writes_widths))
         f_weightmem_writes_intf.write("%d,%d,%08x,%08x\n" % (weightmemory_addr,weightmemory_bank, *weight_word_string))
 
         weightmem_writes_str += str('0x%08x,' % (weightmemory_addr*2**2 + weightmemory_bank*2**9 + WEIGHTMEM_START_ADDR)) # Print Address SCHEREMO: CHECK THIS
@@ -861,11 +878,13 @@ if __name__ == '__main__':
         np.save("dvs_input_frame", new_image.squeeze().numpy())
 
         encoded_image, decoded_image = translate_image_to_actmem(new_image_padded)
-        for addr, (enc_word, dec_word) in enumerate(zip(encoded_image, decoded_image)):
-            f_activation.write("%s \n" % "".join([str(j) for j in enc_word]))
+        for addr, dec_word in enumerate(decoded_image):
             # act_word_string = [ for j in range(0, 96, 32)]
             # act_word = [dec_word[j:j+32] for j in range(0, 96, 32)]
             act_word_string = serializeMemory(dec_word)
+            enc_word = compressMemory(dec_word)
+
+            f_activation.write("%s \n" % "".join([str(j) for j in enc_word]))
 
             # act_word_string = [int("".join([str(s) for s in dec_word[j:j + 32]]), 2) for j in range(0, 96, 32)]
             f_activation_intf.write("%d,%08x,%08x\n" % (addr, *act_word_string))
@@ -878,9 +897,10 @@ if __name__ == '__main__':
 
         if num_dense_layers == 0:
             encoded_result, decoded_result = translate_image_to_actmem(result.unsqueeze(-1))
-            for addr, (enc_word, dec_word) in enumerate(zip(encoded_result, decoded_result)):
-                f_responses.write("%s \n" % "".join([str(j) for j in enc_word]))
+            for addr, dec_word in enumerate(decoded_result):
                 act_word_string = serializeMemory(dec_word)
+                enc_word = compressMemory(dec_word)
+                f_responses.write("%s \n" % "".join([str(j) for j in enc_word]))
 
                 #[int("".join([str(s) for s in dec_word[j:j + 32]]), 2) for j in range(0, no, 32)]
                 f_responses_intf.write("%d,%08x,%08x\n" % (addr, *act_word_string))
