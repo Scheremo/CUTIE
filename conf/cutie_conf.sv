@@ -23,25 +23,26 @@
 
 package cutie_params;
 
-   parameter int unsigned N_I = 96; // # MAX. INPUT CHANNELS
-   parameter int unsigned N_O = 96; // # MAX. OUTPUT CHANNELS, SHOULD EQUAL N_I
+   parameter int unsigned N_I = 32; // # MAX. INPUT CHANNELS
+   parameter int unsigned N_O = 32; // # MAX. OUTPUT CHANNELS, SHOULD EQUAL N_I
 
    // SYSTEM ARCHITECTURE PARAMETERS
    parameter int unsigned K = 3; // KERNEL SIZE, INTERPRETED AS QUADRATIC, I.E. (KxK)
-   parameter int unsigned IMAGEWIDTH = 64; // SIZE OF THE BIGGEST IMAGE
-   parameter int unsigned IMAGEHEIGHT = 64;
+   parameter int unsigned IMAGEWIDTH = 48; // SIZE OF THE BIGGEST IMAGE
+   parameter int unsigned IMAGEHEIGHT = 48;
    parameter int unsigned TCN_WIDTH = 24;
    parameter int unsigned NUMACTMEMBANKSETS = 3; // 2 FOR DOUBLE BUFFERING, +1 FOR TCNS
    parameter int unsigned NUM_LAYERS = 8; // MAXIMUM NUMBER OF SUPPORTED LAYERS PER EXECUTION
 
    // HARDWARE IMPLEMENTATION PARAMETERS
-   parameter int unsigned WEIGHT_STAGGER = 2; // NUMBER OF WORDS PER MAX. CHANNEL
+   parameter int unsigned WEIGHT_STAGGER = 1; // NUMBER OF WORDS PER MAX. CHANNEL
    parameter int unsigned PIPELINEDEPTH = 2;
+   parameter int unsigned ITERATIVE_DECOMP = 1;
    parameter int unsigned WEIGHTMEMORYBANKDEPTH = NUM_LAYERS*WEIGHT_STAGGER*K*K; // NUMBER OF WORDS PER WEIGHT MEMORY BANK
 
    // OCU POOL PARAMETERS
    parameter int unsigned POOLING_FIFODEPTH = IMAGEWIDTH/2;
-   parameter int unsigned THRESHOLD_FIFODEPTH = NUM_LAYERS;
+   parameter int unsigned THRESHOLD_FIFODEPTH = NUM_LAYERS*ITERATIVE_DECOMP;
    parameter int unsigned LAYER_FIFODEPTH = NUM_LAYERS;
 
    parameter int unsigned WEIGHTBANKDEPTH = NUM_LAYERS*WEIGHT_STAGGER*K*K;

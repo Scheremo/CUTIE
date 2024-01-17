@@ -117,15 +117,15 @@ module linebuffer
       // 2) address does not fall outside of Linebuffer
       // 3) connect act inputs to correct block inputs
       if(write_enable_q && valid_i) begin
-         for(int k = 0; k < K; k++) begin
-            if(write_col_q + k < layer_imagewidth_i) begin
-               save_enable_vector[write_col_q + k] = 1'b1;
-               inputs[write_col_q + k] = acts_i[k];
-            end else if (wrap_around_save_enable_q) begin
-               save_enable_vector[(write_col_q + k) - layer_imagewidth_i] = 1'b1;
-               inputs[(write_col_q + k) - layer_imagewidth_i] = acts_i[k];
-            end
-         end
+	 for(int k = 0; k < K; k++) begin
+	    if(write_col_q + k < layer_imagewidth_i) begin
+	       save_enable_vector[write_col_q + k] = 1'b1;
+	       inputs[write_col_q + k] = acts_i[k];
+	    end else if (wrap_around_save_enable_q) begin
+	       save_enable_vector[(write_col_q + k) - layer_imagewidth_i] = 1'b1;
+	       inputs[(write_col_q + k) - layer_imagewidth_i] = acts_i[k];
+	    end
+	 end
       end
 
       // set all act outputs to zeros.
@@ -136,51 +136,51 @@ module linebuffer
       check_valid_row = '0;
 
       if(read_enable_i) begin
-         for(int kx = 0; kx < K; kx++) begin
-            for(int ky = 0; ky < K; ky++) begin
-               check_valid_col[kx] = read_col_i - (K-1)/2 + kx;
-               check_valid_row[ky] = read_row_i - (K-1)/2 + ky;
+	 for(int kx = 0; kx < K; kx++) begin
+	    for(int ky = 0; ky < K; ky++) begin
+	       check_valid_col[kx] = read_col_i - (K-1)/2 + kx;
+	       check_valid_row[ky] = read_row_i - (K-1)/2 + ky;
 
-               // Check if calculated column and row address fall outside of tilebuffer
-               // which should only happen if padding == SAME
-               if((check_valid_col[kx] >= 0) && (check_valid_col[kx] < layer_imagewidth_i) && (check_valid_row[ky] >= 0) && (check_valid_row[ky] < K)) begin
+	       // Check if calculated column and row address fall outside of tilebuffer
+	       // which should only happen if padding == SAME
+	       if((check_valid_col[kx] >= 0) && (check_valid_col[kx] < layer_imagewidth_i) && (check_valid_row[ky] >= 0) && (check_valid_row[ky] < K)) begin
 
-                  // check_valid_row is not the physical row as the tile buffer is not actually a shift register
-                  // but more like a vertical ring buffer, Therefore the row has to be translated first
-                  acts_o[kx][ky] = output_matrixview[check_valid_col[kx]][check_valid_row[ky]];
-               end
-            end // for (int ky = 0; ky < K; ky++)
-         end // for (int kx = 0; kx < K; kx++)
+		  // check_valid_row is not the physical row as the tile buffer is not actually a shift register
+		  // but more like a vertical ring buffer, Therefore the row has to be translated first
+		  acts_o[kx][ky] = output_matrixview[check_valid_col[kx]][check_valid_row[ky]];
+	       end
+	    end // for (int ky = 0; ky < K; ky++)
+	 end // for (int kx = 0; kx < K; kx++)
       end // if (read_enable_i)
    end
 
    genvar m;
    generate
       for (m=0;m<IMAGEWIDTH;m++) begin
-         shifttilebufferblock
-             #(
-               .DEPTH(K),
-               .N_I(N_I)
-               ) block (
-                        .data_i(inputs[m]),
-                        .clk_i(clk_i),
-                        .rst_ni(rst_ni),
-                        .flush_i(flush_i),
-                        .save_enable_i(save_enable_vector[m]),
-                        .data_o(output_matrixview[m])
-                        );
+	 shifttilebufferblock
+	     #(
+	       .DEPTH(K),
+	       .N_I(N_I)
+	       ) block (
+			.data_i(inputs[m]),
+			.clk_i(clk_i),
+			.rst_ni(rst_ni),
+			.flush_i(flush_i),
+			.save_enable_i(save_enable_vector[m]),
+			.data_o(output_matrixview[m])
+			);
       end // for (n=0;n<K;n++)
    endgenerate
 
    always_ff @(posedge clk_i, negedge rst_ni) begin
       if(!rst_ni) begin
-         write_enable_q <= '0;
-         write_col_q <= '0;
-         wrap_around_save_enable_q <= '0;
+	 write_enable_q <= '0;
+	 write_col_q <= '0;
+	 wrap_around_save_enable_q <= '0;
       end else begin
-         write_enable_q <= write_enable_i;
-         write_col_q <= write_col_i;
-         wrap_around_save_enable_q <= wrap_around_save_enable_i;
+	 write_enable_q <= write_enable_i;
+	 write_col_q <= write_col_i;
+	 wrap_around_save_enable_q <= wrap_around_save_enable_i;
       end
    end
 endmodule

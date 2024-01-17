@@ -2,9 +2,14 @@
 //
 // File: weightmemory.sv
 //
-// Created: 06.05.2022
+// Last edited: 24.07.2020
 //
-// Copyright (C) 2022, ETH Zurich and University of Bologna.
+// Copyright (C) 2020, ETH Zurich and University of Bologna.
+//
+// Author: Moritz Scherer, ETH Zurich
+//
+//
+// SPDX-License-Identifier: Apache-2.0 WITH SHL-2.1
 //
 // Author: Moritz Scherer, ETH Zurich
 //
@@ -23,25 +28,24 @@
 // https://hal.archives-ouvertes.fr/hal-02103214/document
 // It also features decoders that are hardwired to the output.
 
-module weightmemory
-  import cutie_params::*;
-   #(
-     parameter int unsigned N_I = 512,
-     parameter int unsigned K = 3,
-     parameter int unsigned WEIGHT_STAGGER = 8,
-     parameter int unsigned BANKDEPTH = cutie_params::WEIGHTBANKDEPTH, // MAYBE CHANGE THIS, NO IDEA YET
+module weightmemory #(
+		      parameter int unsigned N_I = 512,
+		      parameter int unsigned K = 3,
+		      parameter int unsigned WEIGHT_STAGGER = 8,
+		      parameter int unsigned BANKDEPTH = 90, // MAYBE CHANGE THIS, NO IDEA YET
 
-     parameter int unsigned EFFECTIVETRITSPERWORD = N_I/WEIGHT_STAGGER,
-     parameter int unsigned PHYSICALTRITSPERWORD = ((EFFECTIVETRITSPERWORD + 4) / 5) * 5, // Round up number of trits per word; cut excess
-     parameter int unsigned PHYSICALBITSPERWORD = PHYSICALTRITSPERWORD / 5 * 8,
-     parameter int unsigned EXCESSBITS = (PHYSICALTRITSPERWORD - EFFECTIVETRITSPERWORD)*2,
-     parameter int unsigned EFFECTIVEWORDWIDTH = PHYSICALBITSPERWORD - EXCESSBITS,
+		      parameter int unsigned EFFECTIVETRITSPERWORD = N_I/WEIGHT_STAGGER,
+		      parameter int unsigned PHYSICALTRITSPERWORD = ((EFFECTIVETRITSPERWORD + 4) / 5) * 5, // Round up number of trits per word; cut excess
+		      parameter int unsigned PHYSICALBITSPERWORD = PHYSICALTRITSPERWORD / 5 * 8,
+		      parameter int unsigned EXCESSBITS = (PHYSICALTRITSPERWORD - EFFECTIVETRITSPERWORD)*2,
+		      parameter int unsigned EFFECTIVEWORDWIDTH = PHYSICALBITSPERWORD - EXCESSBITS,
 
-     parameter int unsigned NUMDECODERS = PHYSICALBITSPERWORD/8
-     )
+		      parameter int unsigned NUMDECODERS = PHYSICALBITSPERWORD/8
+		      )
    (
     input logic                                   clk_i,
     input logic                                   rst_ni,
+
     input logic                                   read_enable_i,
 
     input logic [PHYSICALBITSPERWORD-1:0]         wdata_i, // Data for up to all OCUs at once
@@ -88,24 +92,28 @@ module weightmemory
 
    assign weights_decoded_physical_view = {<<2{weights_decoded}};
 
+   assign weights_decoded_physical_view = weights_decoded;
+
    always_comb begin
       weights_encoded_decoder_view = {>>{weights_encoded}};
-      for (int trits = 0; trits<EFFECTIVETRITSPERWORD; trits++) begin
-         weights_decoded_effective_view[trits] = weights_decoded_physical_view[EFFECTIVETRITSPERWORD-1-trits];
-      end
+      //weights_decoded_effective_view = weights_decoded_physical_view[PHYSICALTRITSPERWORD-1:(PHYSICALTRITSPERWORD-EFFECTIVETRITSPERWORD)];
+      weights_decoded_effective_view = weights_decoded_physical_view[EFFECTIVETRITSPERWORD-1:0];
+      // for (int trits = 0; trits<EFFECTIVETRITSPERWORD; trits++) begin
+      //    weights_decoded_effective_view[trits] = weights_decoded_physical_view[EFFECTIVETRITSPERWORD-1-trits];
+      // end
    end
 
    always_ff @(posedge clk_i, negedge rst_ni) begin
       if(~rst_ni) begin
-         prev_ready <= '0;
-         collision_q <= '0;
+	 prev_ready <= '0;
+	 collision_q <= '0;
       end else begin
-         prev_ready <= ready;
-         if(write_enable_i && read_enable_i) begin
-            collision_q <= '1;
-         end else begin
-            collision_q <= '0;
-         end
+	 prev_ready <= ready;
+	 if(write_enable_i && read_enable_i) begin
+	    collision_q <= '1;
+	 end else begin
+	    collision_q <= '0;
+	 end
       end
    end
 
@@ -136,10 +144,10 @@ module weightmemory
    genvar n;
    generate
       for (n=0; n<NUMDECODERS; n++) begin : decoders
-         decoder dec (
-                      .decoder_i(weights_encoded_decoder_view[n]),
-                      .decoder_o(weights_decoded[n])
-                      );
+	 decoder dec (
+		      .decoder_i(weights_encoded_decoder_view[n]),
+		      .decoder_o(weights_decoded[n])
+		      );
       end
    endgenerate
 

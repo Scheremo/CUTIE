@@ -1,0 +1,180 @@
+{
+    name: "layer_params",
+    clock_primary: "clk_i",
+    reset_primary: "rst_ni",
+    bus_device: "reg",
+    bus_host: "",
+
+    regwidth: "32",
+    registers: [
+        { name: "Feature Map",
+          desc: "properties of the feature map",
+          swaccess: "wo",
+          hwaccess: "hro",
+          fields: [
+              { bits: "6:0",
+                name: "WIDTH",
+                desc: "width of feature map"
+              },
+              { bits: "14:8",
+                name: "HEIGHT",
+                desc: "height of feature map"
+              },
+              { bits: "23:16",
+                name: "N_I",
+                desc: "input channels of feature map"
+              },
+              { bits: "31:24",
+                name: "N_O",
+                desc: "output channels of feature map"
+              }
+          ]
+        },
+        { name: "TCN",
+          desc: "describes configuration for TCN inference",
+          swaccess: "wo",
+          hwaccess: "hro",
+          fields: [
+              { bits: "0",
+                name: "IS_TCN",
+                desc: "TCN flag"
+              },
+              { bits: "12:8",
+                name: "TCN_WIDTH",
+                desc: "TCN sequence width"
+              },
+              { bits: "20:16",
+                name: "TCN_WIDTH_MOD_DIL",
+                desc: "Modulo of TCN sequence width and dilation"
+              },
+              { bits: "25:24",
+                name: "TCN_K",
+                desc: "kernel size of TCN"}
+          ]
+        },
+        { name: "Kernel",
+          desc: "describes kernel width & stride",
+          swaccess: "wo",
+          hwaccess: "hro",
+          fields: [
+              { bits: "2:0",
+                name: "K",
+                desc: "size of kernel"
+              },
+              { bits: "8",
+                name: "PADDING",
+                desc: "padding type, either valid or same",
+                enum: [
+                    { value: "0", name: "VALID", desc: "Valid Padding"},
+                    { value: "1", name: "SAME", desc: "SAME Padding"}
+                ]
+              },
+              { bits: "17:16",
+                name: "STRIDE_W",
+                desc: "stride in x direction"
+              },
+              { bits: "25:24",
+                name: "STRIDE_H",
+                desc: "stride in y direction"
+              }
+          ]
+        },
+        { name: "Pooling",
+          desc: "configures pooling layer",
+          swaccess: "wo",
+          hwaccess: "hro",
+          fields: [
+              { bits: "0",
+                name: "EN",
+                desc: "pooling enable flag"
+              },
+              { bits: "8",
+                name: "P_TYPE",
+                desc: "Max Pooling or Average Pooling",
+                enum: [
+                    { value: "0", name: "MAX", desc: "Max Pooling"},
+                    { value: "1", name: "AVG", desc: "Average Pooling"}
+                ]
+              },
+              { bits: "17:16",
+                name: "KERNEL",
+                desc: "pooling kernel and stride size",
+              },
+              { bits: "24",
+                name: "PADDING",
+                desc: "pooling padding type",
+                enum: [
+                    { value: "0", name: "VALID", desc: "VALID padding"},
+                    { value: "1", name: "SAME", desc: "SAME padding"}
+                ]
+              }
+          ]
+        },
+        { name: "THRESHOLDS",
+          desc: "low and high thresholds for OCUs",
+          swaccess: "wo",
+          hwaccess: "hrw",
+          hwqe: "true",
+          fields: [
+              { bits: "10:0",
+                name: "TH_LOW",
+                desc: "Low threshold"
+              },
+              { bits: "26:16",
+                name: "TH_HIGH",
+                desc: "High threshold"
+              }
+          ]
+        },
+        { name: "CTRL1",
+          desc: "Indicates valid layer parameters"
+          swaccess: "wo",
+          hwaccess: "hro",
+          fields: [
+              { bits: "0",
+                name: "VALID",
+                desc: "Indicates valid layer_parameters"
+              }
+          ]
+        },
+        { name: "CTRL2",
+          desc: "disables computation if high resp. initiates computation if unset"
+          swaccess: "rw",
+          hwaccess: "hrw",
+          resval: "1",
+          fields: [
+              { bits: "0",
+                name: "COMP_DISABLE",
+                desc: "disables computation if high resp. initiates computation if unset"
+              }
+          ]
+        },
+        { name: "CTRL3",
+          desc: "indicates whether computation is done"
+          swaccess: "rw",
+          hwaccess: "hwo",
+          fields: [
+              { bits: "0",
+                name: "COMP_DONE",
+                desc: "indicates whether computation is done"
+              }
+          ]
+        },
+        {
+            multireg: {
+                name: "fp_out",
+                desc: "Stores the output of the OCUs",
+                count: "96",
+                cname: "_",
+                swaccess: "ro",
+                hwaccess: "hwo",
+                hwext: "true",
+                fields: [{
+                    bits: "10:0"
+                }]
+            }
+
+        }
+
+    ]
+}

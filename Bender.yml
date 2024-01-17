@@ -8,7 +8,7 @@ package:
   authors:
   - "Moritz Scherer <scheremo@iis.ee.ethz.ch>"
   - "Tim Fischer <fischeti@iis.ee.ethz.ch>"
-           
+
 # Other packages this package depends on. Optional.
 dependencies:
   # Path dependency.
@@ -21,44 +21,52 @@ dependencies:
 
 # List of source files in this package. Optional.
 sources:
+  - sourcecode/cutie_pkg.sv
   # Individual source files are simple string entries
-    - conf/cutie_conf.sv
-    - conf/cutie_enums.sv
-    # Ternary encoder/decoder
-    - rtl/encoder.sv
-    - rtl/decoder.sv
-    # Weightmemory interfacing
-    - rtl/weightmemory.sv
-    - rtl/weightmemory_internal_wrapper.sv
-    - rtl/weightmemory_external_wrapper.sv
-    # Activation memory + TCN interfacing
-    - rtl/activationmemorybank.sv
-    - rtl/activationmemory.sv
-    - rtl/tcn_shiftmem.sv
-    - rtl/tcn_activationmemory.sv
-    - rtl/activationmemory_internal_wrapper.sv
-    - rtl/activationmemory_external_wrapper.sv
-    # line/tile buffer
-    - rtl/shifttilebufferblock.sv
-    - rtl/linebuffer.sv
-    - rtl/lb2ocu_controller.sv
-    # OCU
-    - rtl/tern_mult.sv
-    - rtl/popc.sv
-    - rtl/weightbufferblock_latch.sv
-    - rtl/addertree.sv
-    - rtl/ocu_pool_weights.sv
-    # Controller
-    - rtl/actmem_write_controller.sv
-    - rtl/linebuffer_master_controller.sv
-    - rtl/actmem2lb_controller.sv
-    - rtl/weightmemory_controller.sv
-    - rtl/ocu_controller.sv
-    - rtl/LUCA.sv
-    - rtl/cutie_top.sv
-    
-    # Testing harness
-    - rtl/tcn_actmem_bank.sv  
-    - rtl/sram_actmem_behavioural.sv
-    - rtl/sram_weightmem_behavioural.sv  
-    - rtl/tb/tb_cutie_top.sv
+  - conf/cutie_conf.sv
+  - conf/cutie_enums.sv
+  # Ternary encoder/decoder
+  - sourcecode/encoder.sv
+  - sourcecode/decoder.sv
+  # Weightmemory interfacing
+  - sourcecode/sram_actmem_behavioural.sv
+  - sourcecode/sram_weightmem_behavioural.sv
+
+  - sourcecode/weightmemory.sv
+  - sourcecode/weightmemory_internal_wrapper.sv
+  - sourcecode/weightmemory_external_wrapper.sv
+  # Activation memory + TCN interfacing
+  - sourcecode/activationmemorybank.sv
+  - sourcecode/activationmemory.sv
+  - sourcecode/tcn_shiftmem.sv
+  - sourcecode/tcn_activationmemory.sv
+  - sourcecode/activationmemory_internal_wrapper.sv
+  - sourcecode/activationmemory_external_wrapper.sv
+  # line/tile buffer
+  - sourcecode/shifttilebufferblock.sv
+  - sourcecode/linebuffer.sv
+  - sourcecode/lb2ocu_controller.sv
+  # OCU
+  - sourcecode/tern_mult.sv
+  - sourcecode/popc.sv
+  - sourcecode/weightbufferblock_latch.sv
+  - sourcecode/addertree.sv
+  - sourcecode/ocu_pool_weights.sv
+  # Controller
+  - sourcecode/actmem_write_controller.sv
+  - sourcecode/linebuffer_master_controller.sv
+  - sourcecode/actmem2lb_controller.sv
+  - sourcecode/weightmemory_controller.sv
+  - sourcecode/ocu_controller.sv
+  - sourcecode/LUCA.sv
+  - sourcecode/compute_core.sv
+  - sourcecode/cutie_top.sv
+  - sourcecode/layer_params_reg_pkg.sv
+  - sourcecode/layer_params_reg_top.sv
+
+  - include_dirs:
+      - sourcecode/include
+    files:
+      - sourcecode/tcdm_to_mem.sv
+
+  - sourcecode/compute_output_wrapper.sv

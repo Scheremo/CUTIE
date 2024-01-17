@@ -23,12 +23,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ni = 96 # Maximum number of input channels
-no = 96 # Maximum number of output channels
+ni = 32 # Maximum number of input channels
+no = 32 # Maximum number of output channels
 
-imagewidth = 64 # Image width for SRAM memory in activationmemory
-imageheight = 64 # Image height for SRAM memory in activationmemory
+imagewidth = 48 # Image width for SRAM memory in activationmemory
+imageheight = 48 # Image height for SRAM memory in activationmemory
 tcn_width = 24
+
+weight_stagger = 1 # Number of cycles to load one full wight buffer in OCU Pool
+iterative_decomp = 1
 
 k = 3 # QUADRATIC Kernel size
 layer_fifodepth = 8
@@ -36,9 +39,8 @@ layer_fifodepth = 8
 imw = 3*k # Image width for tilebuffer
 imh = k # Image heigth for tilebuffer
 pooling_fifodepth = imagewidth/2 # Depth of pooling fifo in OCU Pool
-threshold_fifodepth = layer_fifodepth
+threshold_fifodepth = layer_fifodepth*iterative_decomp
 
-weight_stagger = 2 # Number of cycles to load one full wight buffer in OCU Pool
 pipelinedepth = 2 # Number of pipelinestages
 
 numactmemsets = 2

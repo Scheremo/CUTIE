@@ -7,6 +7,7 @@
 
 # Ignore Emacs backup files
 *~
+*#
 
 # Ignore stimuli files
 stimuli/*.txt

@@ -150,11 +150,11 @@ module ocu_pool_weights
       weights_test_enable = '0;
 
       if ( weights_save_bank_i == 1'b0 ) begin
-         weights_save_enable[0] = weights_save_enable_i;
-         weights_test_enable[0] = weights_test_enable_i;
+	 weights_save_enable[0] = weights_save_enable_i;
+	 weights_test_enable[0] = weights_test_enable_i;
       end else begin
-         weights_save_enable[1] = weights_save_enable_i;
-         weights_test_enable[1] = weights_test_enable_i;
+	 weights_save_enable[1] = weights_save_enable_i;
+	 weights_test_enable[1] = weights_test_enable_i;
       end
 
    end // block: weightbank_arbitration
@@ -165,18 +165,18 @@ module ocu_pool_weights
    genvar                                                                       o;
    generate
       for (m=0; m<K; m++)  begin : ternary_multiplier // Generate all ternary multipliers
-         for (n=0; n<K; n++)  begin // Generate all ternary multipliers
-            for (o=0; o<N_I; o++)  begin // Generate all ternary multipliers
-               logic [1:0] result;
-               ternary_mult tern(
-                                 .act_i(acts_i[m][n][o]),
-                                 .weight_i(weights[m][n][o]),
-                                 .outp_o(result)
-                                 );
-               assign bitvec_pos[m*K*N_I + n*N_I + o] = result[1];
-               assign bitvec_neg[m*K*N_I + n*N_I + o] = result[0];
-            end
-         end // for (n=0; n<K; n++)
+	 for (n=0; n<K; n++)  begin // Generate all ternary multipliers
+	    for (o=0; o<N_I; o++)  begin // Generate all ternary multipliers
+	       logic [1:0] result;
+	       ternary_mult tern(
+				 .act_i(acts_i[m][n][o]),
+				 .weight_i(weights[m][n][o]),
+				 .outp_o(result)
+				 );
+	       assign bitvec_pos[m*K*N_I + n*N_I + o] = result[1];
+	       assign bitvec_neg[m*K*N_I + n*N_I + o] = result[0];
+	    end
+	 end // for (n=0; n<K; n++)
       end
    endgenerate
 
@@ -209,18 +209,18 @@ module ocu_pool_weights
        .DEPTH(POOLING_FIFODEPTH)
        )
    pooling_fifo  (
-                  .clk_i(clk_i),
-                  .rst_ni(rst_ni),
-                  .flush_i(pooling_fifo_flush_i),
-                  .testmode_i(pooling_fifo_testmode_i),
-                  .full_o(pooling_fifo_full),
-                  .empty_o(pooling_fifo_empty),
-                  .usage_o(pooling_fifo_usage),
-                  .data_i(alu_data_out),
-                  .push_i(fifo_push),
-                  .data_o(fifo_data_out),
-                  .pop_i(fifo_pop)
-                  );
+		  .clk_i(clk_i),
+		  .rst_ni(rst_ni),
+		  .flush_i(pooling_fifo_flush_i),
+		  .testmode_i(pooling_fifo_testmode_i),
+		  .full_o(pooling_fifo_full),
+		  .empty_o(pooling_fifo_empty),
+		  .usage_o(pooling_fifo_usage),
+		  .data_i(alu_data_out),
+		  .push_i(fifo_push),
+		  .data_o(fifo_data_out),
+		  .pop_i(fifo_pop)
+		  );
 
    fifo_v3
      #(.FALL_THROUGH(FIFO_FALL_THROUGH),
@@ -228,18 +228,18 @@ module ocu_pool_weights
        .DEPTH(THRESHOLD_FIFODEPTH+1)
        )
    threshold_fifo  (
-                    .clk_i(clk_i),
-                    .rst_ni(rst_ni),
-                    .flush_i(threshold_fifo_flush_i),
-                    .testmode_i(threshold_fifo_testmode_i),
-                    .full_o(threshold_fifo_full),
-                    .empty_o(threshold_fifo_empty),
-                    .usage_o(threshold_fifo_usage),
-                    .data_i(thresholds_in),
-                    .push_i(threshold_store_to_fifo_i || threshold_pop_i),
-                    .data_o(thresholds_out),
-                    .pop_i(threshold_pop_i)
-                    );
+		    .clk_i(clk_i),
+		    .rst_ni(rst_ni),
+		    .flush_i(threshold_fifo_flush_i),
+		    .testmode_i(threshold_fifo_testmode_i),
+		    .full_o(threshold_fifo_full),
+		    .empty_o(threshold_fifo_empty),
+		    .usage_o(threshold_fifo_usage),
+		    .data_i(thresholds_in),
+		    .push_i(threshold_store_to_fifo_i || threshold_pop_i),
+		    .data_o(thresholds_out),
+		    .pop_i(threshold_pop_i)
+		    );
 
 
    assign thresholds_in[0] = (threshold_store_to_fifo_i)? thresh_pos_i : thresholds_out[0];
@@ -254,44 +254,44 @@ module ocu_pool_weights
    genvar                  line;
    genvar                  column;
    generate
-      for(set=0;set<2;set++) begin : weightbufferset
-         for(line=0;line<K;line++)begin : weightbufferline
-            for(column=0;column<K;column++)begin : weightbuffercolumn
-               for(block=0;block<WEIGHT_STAGGER;block++) begin : weightbufferblock
-                  weightbufferblock #(.N_I(N_I/WEIGHT_STAGGER), .K(1))
-                  weightsbuffer (
-                                 .data_i(weights_i),
-                                 .clk_i(clk_i),
-                                 .rst_ni(rst_ni),
-                                 .save_enable_i(weights_save_enable[set][block][line][column]),
-                                 .test_enable_i(weights_test_enable[set][block][line][column]),
-                                 .flush_i(weights_flush[set][block]),
-                                 .data_o(weights_interim[set][block][line][column])
-                                 );
-               end // for (block=0;block<WEIGHT_STAGGER;block++)
-            end // for (column=0;column<K;column++)
-         end // for (line=0;line<K;line++)
+      for(set=0;set<1;set++) begin : weightbufferset
+	 for(line=0;line<K;line++)begin : weightbufferline
+	    for(column=0;column<K;column++)begin : weightbuffercolumn
+	       for(block=0;block<WEIGHT_STAGGER;block++) begin : weightbufferblock
+		  weightbufferblock #(.N_I(N_I/WEIGHT_STAGGER), .K(1))
+		  weightsbuffer (
+				 .data_i(weights_i),
+				 .clk_i(clk_i),
+				 .rst_ni(rst_ni),
+				 .save_enable_i(weights_save_enable[set][block][line][column]),
+				 .test_enable_i(weights_test_enable[set][block][line][column]),
+				 .flush_i(weights_flush[set][block]),
+				 .data_o(weights_interim[set][block][line][column])
+				 );
+	       end // for (block=0;block<WEIGHT_STAGGER;block++)
+	    end // for (column=0;column<K;column++)
+	 end // for (line=0;line<K;line++)
       end // for (set=0;set<2;set++)
    endgenerate
 
    always_comb begin : weight_bank_selection
       weights_flush = '0;
       if(weights_read_bank_i == 1'b0) begin
-         weights_read_interim = weights_interim[0];
-         weights_flush[1] = weights_flush_i;
+	 weights_read_interim = weights_interim[0];
+	 weights_flush[1] = weights_flush_i;
       end else begin
-         weights_read_interim = weights_interim[1];
-         weights_flush[0] = weights_flush_i;
+	 weights_read_interim = weights_interim[1];
+	 weights_flush[0] = weights_flush_i;
       end
 
       for(int j=0;j<K;j++) begin
-         for(int n=0;n<K;n++) begin
-            for (int slice=0;slice<WEIGHT_STAGGER;slice++) begin
-               for (int q=0;q<N_I/WEIGHT_STAGGER;q++) begin
-                  weights[j][n][slice*N_I/WEIGHT_STAGGER + q] = weights_read_interim[slice][j][n][q];
-               end
-            end
-         end
+	 for(int n=0;n<K;n++) begin
+	    for (int slice=0;slice<WEIGHT_STAGGER;slice++) begin
+	       for (int q=0;q<N_I/WEIGHT_STAGGER;q++) begin
+		  weights[j][n][slice*N_I/WEIGHT_STAGGER + q] = weights_read_interim[slice][j][n][q];
+	       end
+	    end
+	 end
       end
 
    end // always_comb
@@ -303,32 +303,32 @@ module ocu_pool_weights
       fifo_pop = 1'b0;
       if(compute_enable_i == 1) begin
 
-         alu_data_in_2 = current_sum_q;
+	 alu_data_in_2 = current_sum_q;
 
-         if (alu_operand_sel_i == ALU_OPERAND_FIFO) begin
-            alu_data_in_1 = fifo_data_out;
-            fifo_pop = 1;
-         end else if (alu_operand_sel_i ==  ALU_OPERAND_PREVIOUS) begin
-            alu_data_in_1 = previous_alu_data_out_q;
-         end else if (alu_operand_sel_i ==  ALU_OPERAND_ZERO) begin
-            alu_data_in_1 = '0;
-         end else begin
-            alu_data_in_1 = {1'b1, hacky_helper};
-         end
+	 if (alu_operand_sel_i == ALU_OPERAND_FIFO) begin
+	    alu_data_in_1 = fifo_data_out;
+	    fifo_pop = 1;
+	 end else if (alu_operand_sel_i ==  ALU_OPERAND_PREVIOUS) begin
+	    alu_data_in_1 = previous_alu_data_out_q;
+	 end else if (alu_operand_sel_i ==  ALU_OPERAND_ZERO) begin
+	    alu_data_in_1 = '0;
+	 end else begin
+	    alu_data_in_1 = {1'b1, hacky_helper};
+	 end
       end else begin
-         alu_data_in_1 = '0;
-         alu_data_in_2 = '0;
-         fifo_pop = '0;
+	 alu_data_in_1 = '0;
+	 alu_data_in_2 = '0;
+	 fifo_pop = '0;
       end
    end // block: ALU_input_selection
 
    always_comb begin : ALU
       if (alu_op_i == ALU_OP_MAX) begin // SUM operation
-         alu_data_out = alu_data_in_1 > alu_data_in_2 ? alu_data_in_1 : alu_data_in_2;
+	 alu_data_out = alu_data_in_1 > alu_data_in_2 ? alu_data_in_1 : alu_data_in_2;
       end else if (alu_op_i == ALU_OP_SUM) begin // MAX operation
-         alu_data_out = alu_data_in_1 + alu_data_in_2;
+	 alu_data_out = alu_data_in_1 + alu_data_in_2;
       end else begin
-         alu_data_out = '0;
+	 alu_data_out = '0;
       end
    end
 
@@ -336,9 +336,9 @@ module ocu_pool_weights
       fifo_push = 1'b0;
       // Push back to FIFO
       if (pooling_store_to_fifo_i == 1) begin
-         if(compute_enable_i) begin
-            fifo_push = 1;
-         end
+	 if(compute_enable_i) begin
+	    fifo_push = 1;
+	 end
       end
    end
 
@@ -346,18 +346,18 @@ module ocu_pool_weights
 
       // Multiplex the input into the decider stage: Either ALU or tern_mult result
       if (multiplexer_i == MULTIPLEXER_CONV) begin : Output_Multiplexer
-         threshold_input = current_sum_q;
+	 threshold_input = current_sum_q;
       end else begin
-         threshold_input = alu_data_out;
+	 threshold_input = alu_data_out;
       end
 
       // Make thresholding decision on threshold input
       if (threshold_input > thresh_pos)
-        out_o = POS;
+	out_o = POS;
       else if (threshold_input < thresh_neg)
-        out_o = NEG;
+	out_o = NEG;
       else
-        out_o = ZERO;
+	out_o = ZERO;
 
       fp_out_o = current_sum_q;
 
@@ -366,13 +366,13 @@ module ocu_pool_weights
    // Handle the pipeline stage and storage of previous alu output
    always_ff @(posedge clk_i, negedge rst_ni) begin
       if (~rst_ni) begin
-         previous_alu_data_out_q <= '0;
-         current_sum_q <= '0;
+	 previous_alu_data_out_q <= '0;
+	 current_sum_q <= '0;
       end else begin
-         if(compute_enable_i == 1) begin
-            previous_alu_data_out_q <= alu_data_out;
-            current_sum_q <= sum_tot;
-         end
+	 if(compute_enable_i == 1) begin
+	    previous_alu_data_out_q <= alu_data_out;
+	    current_sum_q <= sum_tot;
+	 end
       end
    end // always_ff @ (posedge clk_i, negedge rst_ni)
 

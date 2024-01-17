@@ -47,7 +47,9 @@ module weightmemory_controller
 
     parameter int unsigned WEIGHT_STAGGER_BITWIDTH = WEIGHT_STAGGER > 1 ? $clog2(WEIGHT_STAGGER) : 1,
 
-    parameter int unsigned NUMBANKS = N_O/PIPELINEDEPTH,
+    parameter int ITERATIVE_DECOMP = 1,
+
+    parameter int unsigned NUMBANKS = (N_O/PIPELINEDEPTH)/ITERATIVE_DECOMP,
     parameter int unsigned NUM_LAYERS = 8
 
     )
@@ -139,80 +141,80 @@ module weightmemory_controller
 
       // Save toggle bank signal until able to toggle
       if(toggle_banks_i == 1) begin
-         toggle_banks_d = 1;
+	 toggle_banks_d = 1;
       end else begin
-         toggle_banks_d = toggle_banks_q;
+	 toggle_banks_d = toggle_banks_q;
       end
 
       if(latch_new_layer_i == 1) begin
-         for(int i=0;i<WEIGHT_STAGGER;i++) begin
-            // Flush deeper channels if layer has fewer channels
-            if(max_write_depth>i) begin
-               weights_flush_o[WEIGHT_STAGGER-1-i] = 1;
-            end
-            // Flush all weight if sub-K size layer is loaded
-            if(layer_k_i < K) begin
-               weights_flush_o = '1;
-            end
-         end
+	 for(int i=0;i<WEIGHT_STAGGER;i++) begin
+	    // Flush deeper channels if layer has fewer channels
+	    if(max_write_depth>i) begin
+	       weights_flush_o[WEIGHT_STAGGER-1-i] = 1;
+	    end
+	    // Flush all weight if sub-K size layer is loaded
+	    if(layer_k_i < K) begin
+	       weights_flush_o = '1;
+	    end
+	 end
 
-         current_read_start_address_d = current_read_start_address_q + (K*K*WEIGHT_STAGGER);
-         current_read_address_d = current_read_start_address_d;
-         // current_read_address_d = (current_read_address_q / (K*K*WEIGHT_STAGGER)) * (K*K*WEIGHT_STAGGER) + (K*K*WEIGHT_STAGGER);
+	 current_read_start_address_d = current_read_start_address_q + (K*K*WEIGHT_STAGGER);
+	 current_read_address_d = current_read_start_address_d;
+	 // current_read_address_d = (current_read_address_q / (K*K*WEIGHT_STAGGER)) * (K*K*WEIGHT_STAGGER) + (K*K*WEIGHT_STAGGER);
 
-         ready_d = 0;
+	 ready_d = 0;
       end else if (init_q == 1) begin
-         // Read order is: 0:(n_i/weight_stagger) pixels of first pixel, second pixel ... last pixel
-         // Then i*(n_i/weight_stagger):(i+1)*(n_i/weight_stagger) pixels of first pixel, second pixel ... last pixel
-         current_kernel_pixel_d = (current_kernel_pixel_q + 1)%(layer_k_q*layer_k_q);
-         if(current_kernel_pixel_d == 0) begin
-            current_write_depth_d = (current_write_depth_q + 1)%max_write_depth;
-            if(current_write_depth_d == 0 && one_loaded_q == 1) begin
-               weights_loaded_d = 1;
-            end
-         end else begin
-            current_write_depth_d = current_write_depth_q;
-         end
+	 // Read order is: 0:(n_i/weight_stagger) pixels of first pixel, second pixel ... last pixel
+	 // Then i*(n_i/weight_stagger):(i+1)*(n_i/weight_stagger) pixels of first pixel, second pixel ... last pixel
+	 current_kernel_pixel_d = (current_kernel_pixel_q + 1)%(layer_k_q*layer_k_q);
+	 if(current_kernel_pixel_d == 0) begin
+	    current_write_depth_d = (current_write_depth_q + 1)%max_write_depth;
+	    if(current_write_depth_d == 0 && one_loaded_q == 1) begin
+	       weights_loaded_d = 1;
+	    end
+	 end else begin
+	    current_write_depth_d = current_write_depth_q;
+	 end
 
-         if(toggle_banks_q == 1) begin
-            if(weights_loaded_q == 1) begin
-               current_save_bank_d = (current_save_bank_q+1)%2;
-               weights_loaded_d = 0;
-               read_valid_d = 1;
-               toggle_banks_d = 0;
-               init_d = 0;
-               ready_d = 1;
-            end else begin
-               toggle_banks_d = 1;
-               read_valid_d = 0;
-               ready_d = 0;
-            end
-         end // if (toggle_bank_q == 1)
+	 if(toggle_banks_q == 1) begin
+	    if(weights_loaded_q == 1 && ready_i) begin
+	       //current_save_bank_d = (current_save_bank_q+1)%2;
+	       weights_loaded_d = 0;
+	       read_valid_d = 1;
+	       toggle_banks_d = 0;
+	       init_d = 0;
+	       ready_d = 1;
+	    end else begin
+	       toggle_banks_d = 1;
+	       read_valid_d = 0;
+	       ready_d = 0;
+	    end
+	 end // if (toggle_bank_q == 1)
 
-         if(rw_collision_i == '0 && valid_i == '1) begin
-            save_enable = 1;
-         end else begin
-            save_enable = 0;
-         end
+	 if(rw_collision_i == '0 && valid_i == '1) begin
+	    save_enable = 1;
+	 end else begin
+	    save_enable = 0;
+	 end
 
-         if(ready_i == '1) begin
-            // Read iff initialized and not all weights are loaded
-            mem_read_enable = ~weights_loaded_d & init_d;
-         end else begin
-            mem_read_enable = 0;
-         end
+	 if(ready_i == '1) begin
+	    // Read iff initialized and not all weights are loaded
+	    mem_read_enable = ~weights_loaded_d & init_d;
+	 end else begin
+	    mem_read_enable = 0;
+	 end
 
-         current_read_address_d = current_read_address_q + mem_read_enable;
+	 current_read_address_d = current_read_address_q + mem_read_enable;
 
-         if(mem_read_enable == 1) begin
-            one_loaded_d = 1;
-         end
+	 if(mem_read_enable == 1) begin
+	    one_loaded_d = 1;
+	 end
 
       end // if (init_q == 1)
 
       mem_read_enable_o = mem_read_enable;
       mem_read_addr_o = current_read_address_q;
-      weights_read_bank_o = ~current_save_bank_q;
+      weights_read_bank_o = current_save_bank_q;
       weights_save_bank_o = current_save_bank_q;
       ready_o = ready_q;
       valid_o = (read_valid_q & ~latch_new_layer_i);
@@ -221,78 +223,78 @@ module weightmemory_controller
       weights_test_enable_o = '0;
 
       if(save_enable) begin
-         for(int i=0;i<WEIGHT_STAGGER;i++) begin
-            for(int j=0;j<K;j++) begin
-               for(int m=0;m<K;m++) begin
+	 for(int i=0;i<WEIGHT_STAGGER;i++) begin
+	    for(int j=0;j<K;j++) begin
+	       for(int m=0;m<K;m++) begin
 
-                  // Save pixel at the corrected position.
-                  // For size-K kernels, just go pixel by pixel.
-                  // For lower sized kernels, save around the center like this:
-                  //  _ _ _ _ _
-                  // |_|_|_|_|_|
-                  // |_|x|x|x|_|
-                  // |_|x|x|x|_|
-                  // |_|x|x|x|_|
-                  // |_|_|_|_|_|
+		  // Save pixel at the corrected position.
+		  // For size-K kernels, just go pixel by pixel.
+		  // For lower sized kernels, save around the center like this:
+		  //  _ _ _ _ _
+		  // |_|_|_|_|_|
+		  // |_|x|x|x|_|
+		  // |_|x|x|x|_|
+		  // |_|x|x|x|_|
+		  // |_|_|_|_|_|
 
-                  if(i == current_write_depth_q && (j*K + m) == ((K-layer_k_q)/2)*(K+1+current_kernel_pixel_q/layer_k_q)+current_kernel_pixel_q) begin
-                     weights_save_enable_o[i][j][m] = 1;
-                  end
-               end
-            end
-         end
+		  if(i == current_write_depth_q && (j*K + m) == ((K-layer_k_q)/2)*(K+1+current_kernel_pixel_q/layer_k_q)+current_kernel_pixel_q) begin
+		     weights_save_enable_o[i][j][m] = 1;
+		  end
+	       end
+	    end
+	 end
       end // if (save_enable)
 
       if (soft_reset_i || latch_new_layer_i || ~init_q) begin
-         init_d = init_q;
-         if (latch_new_layer_i) begin
-            init_d = 1;
-         end
+	 init_d = init_q;
+	 if (latch_new_layer_i) begin
+	    init_d = 1;
+	 end
       end
 
       if (soft_reset_i || latch_new_layer_i || ~init_q) begin
-         current_save_bank_d = current_save_bank_q;
+	 current_save_bank_d = current_save_bank_q;
       end
 
       if (soft_reset_i == 1) begin
-         current_read_start_address_d = '0;
+	 current_read_start_address_d = '0;
       end
 
       if (soft_reset_i == 1) begin
-         weights_loaded_d = '0;
+	 weights_loaded_d = '0;
       end else if (latch_new_layer_i == 1) begin
-         weights_loaded_d = '0;
+	 weights_loaded_d = '0;
       end else if (~init_q) begin
-         weights_loaded_d = weights_loaded_q;
+	 weights_loaded_d = weights_loaded_q;
       end
 
       if (soft_reset_i == 1) begin
-         current_read_address_d = '0;
+	 current_read_address_d = '0;
       end else if (latch_new_layer_i == 1) begin
-         current_read_address_d = current_read_address_q;
+	 current_read_address_d = current_read_address_q;
       end else if (~init_q) begin
-         current_read_address_d = current_read_address_q;
+	 current_read_address_d = current_read_address_q;
       end
 
       if (soft_reset_i) begin
-         toggle_banks_d = toggle_banks_q;
-         ready_d = ready_q;
+	 toggle_banks_d = toggle_banks_q;
+	 ready_d = '0;
       end
 
       if (soft_reset_i || latch_new_layer_i) begin
-         one_loaded_d = '0;
-         read_valid_d = '0;
+	 one_loaded_d = '0;
+	 read_valid_d = '0;
       end else if (~init_q) begin
-         one_loaded_d = one_loaded_q;
-         read_valid_d = read_valid_q;
+	 one_loaded_d = one_loaded_q;
+	 read_valid_d = read_valid_q;
       end
 
       if (soft_reset_i || latch_new_layer_i) begin
-         current_kernel_pixel_d = '0;
-         current_write_depth_d = '0;
+	 current_kernel_pixel_d = '0;
+	 current_write_depth_d = '0;
       end else if (~(init_q && save_enable && ~weights_loaded_q)) begin
-         current_kernel_pixel_d = current_kernel_pixel_q;
-         current_write_depth_d = current_write_depth_q;
+	 current_kernel_pixel_d = current_kernel_pixel_q;
+	 current_write_depth_d = current_write_depth_q;
       end
 
    end
@@ -300,38 +302,38 @@ module weightmemory_controller
 
    always_ff @(posedge clk_i, negedge rst_ni) begin
       if(~rst_ni) begin
-         init_q <= '0;
-         layer_k_q <= K;
-         layer_ni_q <= N_I;
-         layer_no_q <= N_O;
-         weights_loaded_q <= '0;
-         read_valid_q <= '0;
-         current_read_address_q <= '0;
-         current_kernel_pixel_q <= '0;
-         current_write_depth_q <= '0;
-         current_save_bank_q <= '0;
-         toggle_banks_q <= '0;
-         ready_q <= '1;
-         one_loaded_q <= '0;
-         current_read_start_address_q <= '0;
+	 init_q <= '0;
+	 layer_k_q <= K;
+	 layer_ni_q <= N_I;
+	 layer_no_q <= N_O;
+	 weights_loaded_q <= '0;
+	 read_valid_q <= '0;
+	 current_read_address_q <= '0;
+	 current_kernel_pixel_q <= '0;
+	 current_write_depth_q <= '0;
+	 current_save_bank_q <= '0;
+	 toggle_banks_q <= '0;
+	 ready_q <= '1;
+	 one_loaded_q <= '0;
+	 current_read_start_address_q <= '0;
       end else begin // if (~rst_ni)
 
-         current_kernel_pixel_q <= current_kernel_pixel_d;
-         current_write_depth_q <= current_write_depth_d;
-         one_loaded_q <= one_loaded_d;
-         read_valid_q <= read_valid_d;
-         toggle_banks_q <= toggle_banks_d;
-         ready_q <= ready_d;
-         current_read_address_q <= current_read_address_d;
-         weights_loaded_q <= weights_loaded_d;
-         current_read_start_address_q <= current_read_start_address_d;
-         current_save_bank_q <= current_save_bank_d;
-         init_q <= init_d;
-         if(latch_new_layer_i == 1) begin
-            layer_ni_q <= layer_ni_i;
-            layer_no_q <= layer_no_i;
-            layer_k_q <= layer_k_i;
-         end
+	 current_kernel_pixel_q <= current_kernel_pixel_d;
+	 current_write_depth_q <= current_write_depth_d;
+	 one_loaded_q <= one_loaded_d;
+	 read_valid_q <= read_valid_d;
+	 toggle_banks_q <= toggle_banks_d;
+	 ready_q <= ready_d;
+	 current_read_address_q <= current_read_address_d;
+	 weights_loaded_q <= weights_loaded_d;
+	 current_read_start_address_q <= current_read_start_address_d;
+	 current_save_bank_q <= current_save_bank_d;
+	 init_q <= init_d;
+	 if(latch_new_layer_i == 1) begin
+	    layer_ni_q <= layer_ni_i;
+	    layer_no_q <= layer_no_i;
+	    layer_k_q <= layer_k_i;
+	 end
       end
    end
 

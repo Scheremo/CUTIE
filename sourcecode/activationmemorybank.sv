@@ -88,27 +88,26 @@ module activationmemorybank
 
    always_comb begin
       weights_encoded_decoder_view = {>>{weights_encoded}};
-      for (int trits = 0; trits<EFFECTIVETRITSPERWORD; trits++) begin
-         weights_decoded_effective_view[trits] = weights_decoded_physical_view[EFFECTIVETRITSPERWORD-1-trits];
-      end
+      weights_decoded_effective_view = weights_decoded_physical_view[PHYSICALTRITSPERWORD-1:(PHYSICALTRITSPERWORD-EFFECTIVETRITSPERWORD)];
+      //weights_decoded_effective_view = weights_decoded_physical_view[EFFECTIVETRITSPERWORD-1:0];
    end
 
    always_comb begin
       if(write_enable_i && read_enable_i) begin
-         collision_d = '1;
+	 collision_d = '1;
       end else begin
-         collision_d = '0;
+	 collision_d = '0;
       end
 
    end
 
    always_ff @(posedge clk_i, negedge rst_ni) begin
       if(~rst_ni) begin
-         collision_q <= '0;
-         prev_ready <= '0;
+	 collision_q <= '0;
+	 prev_ready <= '0;
       end else begin
-         prev_ready <= ready;
-         collision_q <= collision_d;
+	 prev_ready <= ready;
+	 collision_q <= collision_d;
       end
    end
 
@@ -120,23 +119,23 @@ module activationmemorybank
    sram_actmem
      ram_bank
        (
-        .clk_i(clk_i),
-        .rst_ni(rst_ni),
-        .req_i(req),
-        .we_i(write_enable),
-        .addr_i(addr),
-        .wdata_i(wdata_i),
-        .be_i(be), // Always change all bits
-        .rdata_o(weights_encoded)
-        );
+	.clk_i(clk_i),
+	.rst_ni(rst_ni),
+	.req_i(req),
+	.we_i(write_enable),
+	.addr_i(addr),
+	.wdata_i(wdata_i),
+	.be_i(be), // Always change all bits
+	.rdata_o(weights_encoded)
+	);
 
    genvar n;
    generate
       for (n=0; n<NUMDECODERS; n++) begin : decoders
-         decoder dec (
-                      .decoder_i(weights_encoded_decoder_view[n]),
-                      .decoder_o(weights_decoded[n])
-                      );
+	 decoder dec (
+		      .decoder_i(weights_encoded_decoder_view[n]),
+		      .decoder_o(weights_decoded[n])
+		      );
       end
    endgenerate
 
